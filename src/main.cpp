@@ -30,12 +30,6 @@ bool mapMode = false;
 
 using namespace std;
 
-string HEADER = "//Exported by png2gb \n\n\n";
-string START_ARRAY = "const unsigned char %s_data[] = {\n";
-string START_TILESET = "const unsigned char %s_tileset[] = {\n";
-string START_MAP = "const unsigned char %s_map[] = {\n";
-string END_ARRAY = "};\n";
-
 char BUFFER[1024];
 
 int decodeImageFile(const string& imageFilePath, int& width, int& height, GBPixel*& gbPixels) {
@@ -89,47 +83,41 @@ string writePixelTileRow(const GBPixel* gbPixels) {
       hBits += 1;
   }
 
-  sprintf(BUFFER, "0x%02x,0x%02x", lBits, hBits);
+  sprintf(BUFFER, "$%02x, $%02x", lBits, hBits);
   return string(BUFFER);
 }
 
 void writeSpriteData(const string& imageFilePath, GBPixel* gbPixels, const int width, const int height,  string& dataString, string& defineString, const int offset, int& out_size, const bool lastImage) {
-
   size_t lastSlash = imageFilePath.find_last_of('/');
   size_t lastDot = imageFilePath.find_last_of('.');
 
   string imgName = imageFilePath.substr(lastSlash+1, lastDot-(lastSlash+1));
   string fileName = imageFilePath.substr(lastSlash+1, imageFilePath.length()-(lastSlash+1));
 
-  const int pixelCount = width*height;
+  const int pixelCount = width * height;
 
-  int tilesWidth = width/8;
-  int tilesHeight = height/8;
+  int tilesWidth = width / 8;
+  int tilesHeight = height / 8;
 
-  int imageSize = out_size = pixelCount/64;
-  sprintf(BUFFER, "#define %s_offset %i\n", imgName.c_str(), offset);
-  defineString.append(BUFFER);
-  sprintf(BUFFER, "#define %s_size %i\n\n", imgName.c_str(), imageSize);
-  defineString.append(BUFFER);
-
-  sprintf(BUFFER, "\n\t//  %s %i x %i tiles \n\n", fileName.c_str(), tilesWidth, tilesHeight);
-  dataString.append(BUFFER);
+  int imageSize = out_size = pixelCount / 64;
 
   for (int tx = 0; tx < tilesWidth; ++tx) {
     for (int ty = 0; ty < tilesHeight; ++ty) {
 
-      const int tilePixelI = ((ty*width)*8) + (tx * 8);
+      const int tilePixelI = ((ty * width) * 8) + (tx * 8);
 
-      dataString.append("\t");
+      dataString.append("    db  ");
 
       for (int y = 0; y < 8; ++y) {
+        const int pixelRowI = tilePixelI + y * width;
 
-        const int pixelRowI = tilePixelI + y*width;
         dataString.append(writePixelTileRow(&gbPixels[pixelRowI]));
 
-        if(!(pixelRowI+8 == pixelCount && lastImage))
-          dataString.append(",");
+        if(!(pixelRowI+8 == pixelCount) && y != 7) {
+          dataString.append(", ");
+        }
       }
+
       dataString.append("\n");
     }
   }
@@ -197,15 +185,6 @@ void writeMapData(list<GBTile*>& tiles, const string& imageFilePath, GBPixel* gb
   string imgName = imageFilePath.substr(lastSlash+1, lastDot-(lastSlash+1));
   string fileName = imageFilePath.substr(lastSlash+1, imageFilePath.length()-(lastSlash+1));
 
-  sprintf(BUFFER, "#define %s_map_width %i\n", imgName.c_str(), tilesWidth);
-  defineString.append(BUFFER);
-
-  sprintf(BUFFER, "#define %s_map_height %i\n\n", imgName.c_str(), tilesHeight);
-  defineString.append(BUFFER);
-
-  sprintf(BUFFER, START_MAP.c_str(), imgName.c_str());
-  dataString.append(BUFFER);
-
   dataString.append("\t");
   for(int i = 0; i < tileCount; ++i) {
     if(i%tilesWidth == 0 && i != 0)
@@ -218,24 +197,15 @@ void writeMapData(list<GBTile*>& tiles, const string& imageFilePath, GBPixel* gb
       dataString.append(",");
 
   }
-  dataString.append("\n");
-  dataString.append(END_ARRAY);
 
-  dataString.append("\n");
   dataString.append("\n");
 
   free(mapData);
 }
 
 void writeTileSetData(list<GBTile*>& tiles, const string& fileName, string& dataString, string& defineString) {
-  sprintf(BUFFER, "#define %s_tileset_size %i\n\n", fileName.c_str(), (int)tiles.size());
-  defineString.append(BUFFER);
-
-
-  sprintf(BUFFER, START_TILESET.c_str(), fileName.c_str());
-  dataString.append(BUFFER);
-
   int i = 1;
+
   for (list<GBTile*>::const_iterator tile = tiles.begin(); tile != tiles.end(); ++tile) {
     dataString.append("\t");
 
@@ -245,17 +215,14 @@ void writeTileSetData(list<GBTile*>& tiles, const string& fileName, string& data
       dataString.append(writePixelTileRow(&((*tile)->gbPixels[pixelRowI])));
 
       if(!(i == tiles.size() && y == 7))
-        dataString.append(",");
+        dataString.append(", ");
     }
+
     ++i;
+
     dataString.append("\n");
   }
-
-  dataString.append(END_ARRAY);
 }
-
-
-
 
 void printHelp() {
   printf("./png2bg [files... , options] \n");
@@ -347,17 +314,12 @@ int main(int argc, const char * argv[]) {
   string outputName = outputPath.substr(lastSlash+1, lastDot-(lastSlash+1));
 
   string fileString = "";
-  fileString.append(HEADER);
-
   string defineString = "";
   string dataString = "";
 
   //Begin decoding
 
   if(!mapMode) { //Normal mode
-    sprintf(BUFFER, START_ARRAY.c_str(), outputName.c_str());
-    dataString.append(BUFFER);
-
     int i = 0;
     int data_offset = 0;
     for (list<string>::const_iterator iter = inputPaths->begin(); iter != inputPaths->end(); ++iter) {
@@ -376,12 +338,6 @@ int main(int argc, const char * argv[]) {
 
       free(gbPixels);
     }
-
-    sprintf(BUFFER, "#define %s_size %i\n\n", outputName.c_str(), data_offset);
-    defineString.append(BUFFER);
-
-    dataString.append(END_ARRAY);
-
   } else {
     list<GBTile*> tiles;
 
