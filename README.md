@@ -1,11 +1,15 @@
-#png2gb
+# png2gb
 
+A simple command line image file to gameboy .asm array converter.
 
-A simple command line image file to gameboy .c array converter.
-Intended to be used with [GBDK](http://gbdk.sourceforge.net/).
+# Build
 
-###Build
+Run `make`
 
-cd to png2gb type
-<code>make all</code>
-Test compiled on _Linux_ and _OSX_
+# LICENSE
+
+Original work by Lucas Duroj (LuckyLights) in 2014/2015.
+
+Modified version by Renan S Silva (h3nnn4n) in 2020 to output data in a rgbasm friendly format
+
+See [LICENSE](LICENSE)
