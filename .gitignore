@@ -1,4 +1,7 @@
-build/png2gb
+build/
+png2gb
+
 *.DS_Store
 
 *.png
+*.o

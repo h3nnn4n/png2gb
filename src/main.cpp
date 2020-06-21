@@ -6,9 +6,8 @@
 //  Copyright (c) 2014 Lucas Duroj. All rights reserved.
 //
 
-#define STB_IMAGE_IMPLEMENTATION
-
 #include "stb_image.h"
+#include <cstring>
 #include <string>
 #include <list>
 
